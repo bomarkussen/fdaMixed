@@ -1,43 +1,24 @@
 \name{fdaMixed-package}
 \alias{fdaMixed}
+\alias{fdaMixed-package}
 \docType{package}
 \title{Functional Data Analysis in a Mixed Model Framework}
-\description{Likelihood based analysis of 1-dimension functional data in
-  a mixed-effets model framework. The methodology is designed for
-  equidistantly sampled high frequency data, where the needed matrix
-  computation may be approximated by semi-explicit operator
-  equivalents with linear computational complexity. Extensions exist for
-  non-equidistantly sampled data, but these have not been implemented. 
+\description{Likelihood based analysis of 1-dimension functional data in a mixed-effets model framework. The methodology is designed for equidistantly sampled high frequency data, where the needed matrix computation may be approximated by semi-explicit operator equivalents with linear computational complexity. Extensions exist for non-equidistantly sampled data, but these have not been implemented. 
 } 
-\details{
-\tabular{ll}{
-Package: \tab fdaMixed\cr
-Type: \tab Package\cr
-Version: \tab 0.5\cr
-Date: \tab 2017-03-07\cr
-License: \tab GPL-2\cr
-LazyLoad: \tab yes\cr
-}
-}
 \author{
 Bo Markussen <bomar@math.ku.dk>
 }
 \references{
-Bo Markussen (2013), "Functional data analysis in an operator based mixed model
-framework", Bernoulli, vol. 19, pp. 1-17.
+Bo Markussen (2013), "Functional data analysis in an operator based mixed model framework", Bernoulli, vol. 19, pp. 1-17.
 
-Conrad Sanderson (2010), "Armadillo: An open source C++ linear algebra library
-for fast prototyping and computationally intensive experiments", NICTA
-technical report.
+Conrad Sanderson (2010), "Armadillo: An open source C++ linear algebra library for fast prototyping and computationally intensive experiments", NICTA technical report.
 
 Dirk Eddelbuettel, "Rcpp: Seamless R and C++ Integration with Rcpp", UseR!, Springer, 2013.
 }
 \keyword{package}
 \keyword{models}
 \seealso{
-  Implementation done using the package \code{RcppArmadillo}.
-  For penalized likelihood analysis of functional data see the packages
-  \code{fda} and \code{fda.usc}.
+Implementation done using the package \code{RcppArmadillo}. For penalized likelihood analysis of functional data see the packages \code{fda} and \code{fda.usc}.
 }
 \examples{
 x <- seq(0,2*pi,length.out=200)

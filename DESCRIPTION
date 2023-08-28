@@ -1,15 +1,15 @@
 Package: fdaMixed
 Type: Package
 Title: Functional Data Analysis in a Mixed Model Framework
-Version: 0.6
-Date: 2019-09-03
+Version: 0.6.1
+Date: 2023-08-28
 Authors@R: c(person("Bo", "Markussen", role = c("aut", "cre"),
     email = "bomar@math.ku.dk"))
 Description: Likelihood based analysis of 1-dimension functional data
         in a mixed-effects model framework. Matrix computation are
         approximated by semi-explicit operator equivalents with linear
         computational complexity. Markussen (2013) <doi:10.3150/11-BEJ389>.
-License: GPL-2
+License: GPL (>= 3)
 LazyLoad: yes
 Imports: Formula, Rcpp
 LinkingTo: Rcpp, RcppArmadillo

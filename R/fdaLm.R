@@ -33,7 +33,7 @@ fdaLm <- function(formula,data,design,
     mf$formula <- formula(Formula::Formula(formula),lhs=2,rhs=0)
     mf$drop.unused.levels <- TRUE
     id.data    <- try(as.factor(eval(mf,parent.frame())[,1]),silent=TRUE)
-    if (class(id.data)!="try-error") {
+    if (!inherits(id.data,"try-error")) {
       id.names.data <- levels(id.data)[unique(id.data)]
       MM.data       <- length(id.names.data)
     }
@@ -45,21 +45,21 @@ fdaLm <- function(formula,data,design,
     mf$drop.unused.levels <- TRUE
     names(mf)[match("design",names(mf),0)] <- "data"
     id.design  <- try(as.factor(eval(mf,parent.frame())[,1]),silent=TRUE)
-    if (class(id.design)!="try-error") {
+    if (!inherits(id.design,"try-error")) {
       id.names.design <- levels(id.design)[unique(id.design)]
       MM.design       <- length(id.names.design)
     }
 
     # Validate identifiers
-    if (class(id.data)=="try-error") {
-      if (class(id.design)=="try-error") {
+    if (inherits(id.data,"try-error")) {
+      if (inherits(id.design,"try-error")) {
         stop("Sample identifier not found")
       } else {
         MM       <- MM.design
         id.names <- id.names.design
       }
     } else {
-      if (class(id.design)=="try-error") {
+      if (inherits(id.design,"try-error")) {
         MM       <- MM.data
         id.names <- id.names.data
       } else {
@@ -111,7 +111,7 @@ fdaLm <- function(formula,data,design,
     mf$drop.unused.levels <- TRUE
     names(mf)[match("design",names(mf),0)] <- "data"
     mf         <- try(suppressWarnings(eval(mf,parent.frame())),silent=TRUE)
-    if (class(mf)=="try-error") {
+    if (inherits(mf,"try-error")) {
       warning("All fixed effect design variables not found in 'design' and/or parent environment. I will look in 'data' frame")
       look.in.data <- TRUE
     }
@@ -127,12 +127,12 @@ fdaLm <- function(formula,data,design,
     mf$formula <- formula(Formula::Formula(formula),lhs=0,rhs=1)
     mf$drop.unused.levels <- TRUE
     mf         <- try(suppressWarnings(eval(mf,parent.frame())),silent=TRUE)
-    if (class(mf)=="try-error") stop("All fixed effect design variables not found in 'data' and/or parent environment")
+    if (inherits(mf,"try-error")) stop("All fixed effect design variables not found in 'data' and/or parent environment")
   }
 
   # If identifiers in both 'data' and 'design' with same length as data frame,
   # then reorder data frame  
-  if ((MM > 1) && (class(id.data)!="try-error") && (class(id.design)!="try-error") && (dim(mf)[1]==MM)) {
+  if ((MM > 1) && (!inherits(id.data,"try-error")) && (!inherits(id.design,"try-error")) && (dim(mf)[1]==MM)) {
     mf <- mf[match(id.names.data,id.names.design),,drop=FALSE]
   }
 
@@ -163,7 +163,7 @@ fdaLm <- function(formula,data,design,
       mf$drop.unused.levels <- TRUE
       names(mf)[match("design",names(mf),0)] <- "data"
       mf         <- try(suppressWarnings(eval(mf,parent.frame())),silent=TRUE)
-      if (class(mf)=="try-error") {
+      if (inherits(mf,"try-error")) {
         warning("All fixed random design variables not found in 'design' and/or parent environment. I will look in 'data' frame")
         look.in.data <- TRUE
       }
@@ -179,12 +179,12 @@ fdaLm <- function(formula,data,design,
       mf$formula <- formula(Formula::Formula(formula),lhs=0,rhs=2)
       mf$drop.unused.levels <- TRUE
       mf         <- try(suppressWarnings(eval(mf,parent.frame())),silent=TRUE)
-      if (class(mf)=="try-error") stop("All random effect design variables not found in 'data' and/or parent frame")
+      if (inherits(mf,"try-error")) stop("All random effect design variables not found in 'data' and/or parent frame")
     }
 
     # If identifiers in both 'data' and 'design' with same length as data frame,
     # then reorder data frame
-    if ((MM > 1) && (class(id.data)!="try-error") && (class(id.design)!="try-error") && (dim(mf)[1]==MM)) {
+    if ((MM > 1) && (!inherits(id.data,"try-error")) && (!inherits(id.design,"try-error")) && (dim(mf)[1]==MM)) {
       mf <- mf[match(id.names.data,id.names.design),,drop=FALSE]
     }
 
