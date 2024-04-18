@@ -25,8 +25,8 @@
 //   Cu_            : matrix of dimension (qq,qq)
 //
 // Value:
-//   1) estimates of fixed effect retured in variable betaHat
-//   2) prediction of random effect retured in variable uBLUP
+//   1) estimates of fixed effect returned in variable betaHat
+//   2) prediction of random effect returned in variable uBLUP
 //   3) conditional residuals returned in variable condRes
 //   4) rotation of uBLUP returned in variable uBLUPinvG
 //   5) variance matrices returned in variables Cbeta and Cu

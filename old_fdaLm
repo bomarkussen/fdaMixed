@@ -1,6 +1,6 @@
 fdaLm <- function(formula,data,design,
-                  boxcox=NULL,G=1,K.coef=c(NA,1),nlSearch=TRUE,
-                  K.order=NULL,D.order=NULL,Fleft="tied",Fright="tied",
+                  boxcox=NULL,G=1,lambda=1,nlSearch=TRUE,
+                  K.order=1,D.order=NULL,Fleft="tied",Fright="tied",
                   left=NULL,right=NULL
 #                  ,lag.max=25
                   ){
@@ -243,47 +243,37 @@ fdaLm <- function(formula,data,design,
   # Interpret parameters
   # ----------------------------
   
-  ## Interpret lambda parameter
-  #lambda[lambda<0] <- 0
-  #coefsMat         <- matrix(0,sum(lambda>0),3)
-  #if (lambda[1]==0) stop("Leading lambda coefficient must be strictly positive")
-  #if (K.order %% 2 == 1) {
-  #  if (length(lambda)>2) stop("For odd K.order lambda must have length 1 or 2")
-  #  lambda.name   <- paste("-D^",2*K.order,sep="")
-  #  coefsMat[1,3] <- -1
-  #  if (length(lambda)>1) {
-  #    lambda.name <- c(lambda.name,"I")
-  #    if (lambda[2]>0) coefsMat[2,1] <- 1
-  #  }
-  #} else {
-  #  if (length(lambda) > 3) stop("For even K.order lambda must have length 1, 2 or 3")
-  #  lambda.name   <- paste("D^",2*K.order,sep="")
-  #  coefsMat[1,3] <- 1
-  #  if (length(lambda)>1) {
-  #    if (K.order %% 4 == 2) {
-  #      lambda.name <- c(lambda.name,paste("-D^",K.order,sep=""))
-  #      if (lambda[2]>0) coefsMat[2,2] <- -1
-  #    } else {
-  #      lambda.name <- c(lambda.name,paste("D^",K.order,sep=""))
-  #      if (lambda[2]>0) coefsMat[2,2] <- 1
-  #    }
-  #  }
-  #  if (length(lambda)>2) {
-  #    lambda.name <- c(lambda.name,"I")
-  #    if (lambda[3]>0) coefsMat[2+(lambda[2]>0),1] <- 1
-  #  } 
-  #}
-
-  # Interpret K.coef and K.order parameter
-  if (!is.null(K.coef)) {K.order <- length(K.coef)-1} else {
-    if (is.null(K.order)) K.order <- 1
-    if (K.order < 1) stop("K.order must be at least 1")
-    K.coef <- c(rep(NA,K.order-1),1)
+  # Interpret lambda parameter
+  lambda[lambda<0] <- 0
+  coefsMat         <- matrix(0,sum(lambda>0),3)
+  if (lambda[1]==0) stop("Leading lambda coefficient must be strictly positive")
+  if (K.order %% 2 == 1) {
+    if (length(lambda)>2) stop("For odd K.order lambda must have length 1 or 2")
+    lambda.name   <- paste("-D^",2*K.order,sep="")
+    coefsMat[1,3] <- -1
+    if (length(lambda)>1) {
+      lambda.name <- c(lambda.name,"I")
+      if (lambda[2]>0) coefsMat[2,1] <- 1
+    }
+  } else {
+    if (length(lambda) > 3) stop("For even K.order lambda must have length 1, 2 or 3")
+    lambda.name   <- paste("D^",2*K.order,sep="")
+    coefsMat[1,3] <- 1
+    if (length(lambda)>1) {
+      if (K.order %% 4 == 2) {
+        lambda.name <- c(lambda.name,paste("-D^",K.order,sep=""))
+        if (lambda[2]>0) coefsMat[2,2] <- -1
+      } else {
+        lambda.name <- c(lambda.name,paste("D^",K.order,sep=""))
+        if (lambda[2]>0) coefsMat[2,2] <- 1
+      }
+    }
+    if (length(lambda)>2) {
+      lambda.name <- c(lambda.name,"I")
+      if (lambda[3]>0) coefsMat[2+(lambda[2]>0),1] <- 1
+    } 
   }
-  K.free  <- !is.na(K.coef)
-  K.coef[is.na(K.coef)] <- 0
-  if (K.coef[length(K.coef)] <= 0) stop("Last coefficient of K-operator must be strictly positive")
-  
+
   # Initialize D.order is necessary
   if (is.null(D.order)) {
     D.order <- K.order
@@ -348,36 +338,28 @@ fdaLm <- function(formula,data,design,
     # Extract parameters:
     # Present implementation of variance parameters, might be improved later:
     #   1) If q0!=0 then G is assumed to be proportional to identity matrix
-    #      with scale modelled on log scale
-    #   2) Last coefficient of K-operator modelled on log scale
+    #   2) Parameters modeled on log scale
     # -------------------------------------------------------------------------
 
     if (is.numeric(boxcox)) {
       mu <- param[1]
       if (q0 > 0) {
         G     <- exp(param[2])*diag(q0)
-        K_coef <- K.coef
-        K_coef[K.free] <- param[-c(1,2)]
+        coefs <- as.vector(exp(param[-c(1,2)])%*%coefsMat)
       } else {
         G     <- diag(0)
-        K_coef <- K.coef
-        K_coef[K.free] <- param[-1]
+        coefs <- as.vector(exp(param[-1])%*%coefsMat)
       }
     } else {
       if (q0 > 0) {
         G     <- exp(param[1])*diag(q0)
-        K_coef <- K.coef
-        K_coef[K.free] <- param[-1]
+        coefs <- as.vector(exp(param[-1])%*%coefsMat)
       } else {
         G     <- diag(0)
-        K_coef <- K.coef
-        K_coef[K.free] <- param
+        coefs <- as.vector(exp(param)%*%coefsMat)
       }
     }
 
-    # last coefficient of K-operator is backtransformed
-    K_coef[length(K_coef)] <- exp(K_coef[length(K_coef)])
-    
     # -----------------------------
     # Box-Cox transformation
     # -----------------------------
@@ -396,63 +378,23 @@ fdaLm <- function(formula,data,design,
     # Find eigenvalues
     # --------------------
     
-    # help function
-    # possibly export this later
-    square_operator <- function(coefs) {
-      ii <- (1:length(coefs))
-      A <- outer(coefs,-coefs*((-1)^ii))
-      B <- outer(ii,ii,"+")
-      sapply(min(B):max(B),function(x){sum(A[B==x])})
-    }
-    
-    # L-operator
-    L_coef <- square_operator(K_coef)
-    
-    # Find eigenvalues
-    tmp <- c(1,rep(0,2*K.order)) + (right-left)/NN*L_coef
-    Cmat             <- outer(1:(2*K.order),1:(2*K.order),function(i,j){1*(i+1==j)})
-    Cmat[2*K.order,] <- -tmp[-(2*K.order+1)]/tmp[(2*K.order+1)]
-    my_eigen  <- eigen(Cmat)
-    jj_left   <- order(Re(my_eigen$values))[1:K.order]
-    jj_right  <- order(Re(my_eigen$values))[K.order+(1:K.order)]
-    eta_minus <- my_eigen$values[jj_left]
-    eta_plus  <- my_eigen$values[jj_right]
-    M_minus   <- my_eigen$vectors[1,jj_left]
-    M_plus    <- my_eigen$vectors[1,jj_right]
-  
-    
+    roots <- findRoots(c(1,0,0)+(right-left)/NN*coefs,K.order)
+
     # ---------------------
     # Trace integral
     # ---------------------
 
     innerIntegral <- function(u) {
       # Find eigenvalues
-      eta_minus <- matrix(0,length(u),K.order)
-      eta_plus  <- matrix(0,length(u),K.order)
-      M_minus   <- matrix(0,length(u),K.order)
-      M_plus    <- matrix(0,length(u),K.order)
-      for (ii in 1:length(u)) {
-        tmp <- c(u[ii],rep(0,2*K.order)) + (right-left)/NN*L_coef
-        Cmat             <- outer(1:(2*K.order),1:(2*K.order),function(i,j){1*(i+1==j)})
-        Cmat[2*K.order,] <- -tmp[-(2*K.order+1)]/tmp[(2*K.order+1)]
-        my_eigen <- eigen(Cmat)
-        jj_left <- order(Re(my_eigen$values))[1:K.order]
-        jj_right <- order(Re(my_eigen$values))[K.order+(1:K.order)]
-        
-        # extract elements
-        eta_minus[ii,] <- my_eigen$values[jj_left]
-        eta_plus[ii,]  <- my_eigen$values[jj_right]
-        M_minus[ii,]   <- my_eigen$vectors[1,jj_left]
-        M_plus[ii,]    <- my_eigen$vectors[1,jj_right]
-      }
+      roots <- findRoots(cbind(u+(right-left)/NN*coefs[1],
+                               (right-left)/NN*coefs[2],
+                               (right-left)/NN*coefs[3]),K.order)
 
       # Make call
       return(as.vector(.Call("fdaTrace",
-                             left,right,L_coef[length(L_coef)],
-                             Re(eta_minus),Im(eta_minus),
-                             Re(eta_plus),Im(eta_plus),
-                             Re(M_minus),Im(M_minus),
-                             Re(M_plus),Im(M_plus),
+                             left,right,coefs[3],
+                             Re(roots$left),Im(roots$left),
+                             Re(roots$right),Im(roots$right),
                              Fleft,Fright,NN,
                              PACKAGE="fdaMixed")))
     }
@@ -478,11 +420,8 @@ fdaLm <- function(formula,data,design,
       } else {
         # Call FDA projection
         .Call("fdaEngine",
-              left,right,(right-left)/NN*L_coef[length(L_coef)],
-              Re(eta_minus),Im(eta_minus),
-              Re(eta_plus),Im(eta_plus),
-              Re(M_minus),Im(M_minus),
-              Re(M_plus),Im(M_plus),
+              left,right,(right-left)/NN*coefs[3],
+              Re(roots$left),Im(roots$left),Re(roots$right),Im(roots$right),
               Fleft,Fright,
               G,
               uBLUPinvG,
@@ -500,11 +439,8 @@ fdaLm <- function(formula,data,design,
 
       # Make call
       .Call("fdaEngine",
-            left,right,(right-left)/NN*L_coef[length(L_coef)],
-            Re(eta_minus),Im(eta_minus),
-            Re(eta_plus),Im(eta_plus),
-            Re(M_minus),Im(M_minus),
-            Re(M_plus),Im(M_plus),
+            left,right,(right-left)/NN*coefs[3],
+            Re(roots$left),Im(roots$left),Re(roots$right),Im(roots$right),
             Fleft,Fright,
             G,
             Yres,
@@ -515,32 +451,26 @@ fdaLm <- function(formula,data,design,
       # Estimate noise variance
       # ---------------------------
       
-      sigma2hat <- 
-        (sum(condRes^2) +
-#         quad.uBLUP + 
-         sum(c(xBLUP[,1:length(K_coef)]%*%K_coef)^2)*(right-left)/NN) /
-        ((NN-p0)*MM)
-      
-      # if (K.order %% 2 == 1) {
-      #   sigma2hat <- sum(c(logLikVec[3],quad.uBLUP,
-      #                       coefs[1]*logLikVec[5],
-      #                      -coefs[3]*logLikVec[5+K.order])
-      #                    )/(NN*(MM-p0))
-      # } else {
-      #   sigma2hat <- sum(c(logLikVec[3],quad.uBLUP,
-      #                       coefs[1]*logLikVec[5],
-      #                      -coefs[2]*logLikVec[5+K.order/2],
-      #                       coefs[3]*logLikVec[5+K.order])
-      #                    )/(NN*(MM-p0))
-      # }
+      if (K.order %% 2 == 1) {
+        sigma2hat <- sum(c(logLikVec[3],quad.uBLUP,
+                            coefs[1]*logLikVec[5],
+                           -coefs[3]*logLikVec[5+K.order])
+                         )/(NN*(MM-p0))
+      } else {
+        sigma2hat <- sum(c(logLikVec[3],quad.uBLUP,
+                            coefs[1]*logLikVec[5],
+                           -coefs[2]*logLikVec[5+K.order/2],
+                            coefs[3]*logLikVec[5+K.order])
+                         )/(NN*(MM-p0))
+      }
 
       # ---------------------------
       # Compute -2*log(likelihood)
       # ---------------------------
 
-      res <- (NN-p0)*MM*log(sigma2hat)+
-             MM*integrate(innerIntegral,0,1,stop.on.error=FALSE)$value+
-             (NN-p0)*MM
+      res <- NN*(MM-p0)*log(sigma2hat)+
+             (MM-p0)*integrate(innerIntegral,0,1,stop.on.error=FALSE)$value+
+             NN*(MM-p0)
       if (q0!=0) res <- res + NN*determinant(diag(q0)+t(Zmat)%*%Zmat%*%G)$modulus
       if (p0!=0) res <- res - NN*determinant(Cbeta)$modulus
       attributes(res) <- NULL      
@@ -553,11 +483,8 @@ fdaLm <- function(formula,data,design,
     if (anova.type=="global") {
       # Make call
       .Call("fdaEngine",
-            left,right,(right-left)/NN*L_coef[length(L_coef)],
-            Re(eta_minus),Im(eta_minus),
-            Re(eta_plus),Im(eta_plus),
-            Re(M_minus),Im(M_minus),
-            Re(M_plus),Im(M_plus),
+            left,right,(right-left)/NN*coefs[3],
+            Re(roots$left),Im(roots$left),Re(roots$right),Im(roots$right),
             Fleft,Fright,
             G,
             Ymat,
@@ -568,22 +495,16 @@ fdaLm <- function(formula,data,design,
       # Estimate noise variance
       # ---------------------------
       
-      sigma2hat <- 
-        (logLikVec[4] +
-         sum(condRes^2) +
-         sum(c(xBLUP[,1:length(K_coef)]%*%K_coef)^2)*(right-left)/NN) /
-        (NN*MM-p0)
-      
-      # if (K.order %% 2 == 1) {
-      #   sigma2hat <- sum(c(logLikVec[3:4],coefs[1]*logLikVec[5],
-      #                      -coefs[3]*logLikVec[5+K.order])
-      #                    )/(NN*MM-p0)
-      # } else {
-      #   sigma2hat <- sum(c(logLikVec[3:4],coefs[1]*logLikVec[5],
-      #                      -coefs[2]*logLikVec[5+K.order/2],
-      #                       coefs[3]*logLikVec[5+K.order])
-      #                    )/(NN*MM-p0)
-      # }
+      if (K.order %% 2 == 1) {
+        sigma2hat <- sum(c(logLikVec[3:4],coefs[1]*logLikVec[5],
+                           -coefs[3]*logLikVec[5+K.order])
+                         )/(NN*MM-p0)
+      } else {
+        sigma2hat <- sum(c(logLikVec[3:4],coefs[1]*logLikVec[5],
+                           -coefs[2]*logLikVec[5+K.order/2],
+                            coefs[3]*logLikVec[5+K.order])
+                         )/(NN*MM-p0)
+      }
     
 
       # ---------------------------
@@ -592,8 +513,7 @@ fdaLm <- function(formula,data,design,
 
       res <- (NN*MM-p0)*log(sigma2hat)+
              MM*integrate(innerIntegral,0,1,stop.on.error=FALSE)$value+
-             logLikVec[1]+logLikVec[2]+
-             NN*MM-p0
+             logLikVec[1]+logLikVec[2]+NN*MM-p0
     }
 
     # -------------------
@@ -615,8 +535,7 @@ fdaLm <- function(formula,data,design,
 
   if (q0 > 0) {
     if (is.numeric(boxcox)) {
-      param    <- c(boxcox[1],log(G),K.coef[K.free])
-      param[length(param)] <- log(param[length(param)])
+      param    <- c(boxcox[1],log(G),log(lambda[lambda>0]))
       if (nlSearch) {
         res    <- nlminb(param,minus2logLik)
         counts <- 1+sum(c(1,length(param))*res$evaluations)
@@ -624,13 +543,11 @@ fdaLm <- function(formula,data,design,
       } else {
         counts <- 1
       }
-      boxcox         <- param[1]
-      G              <- exp(param[2])*diag(q0)
-      K.coef[K.free] <- param[-c(1,2)]
-      K.coef[length(K.coef)] <- exp(K.coef[length(K.coef)])
+      boxcox           <- param[1]
+      G                <- exp(param[2])*diag(q0)
+      lambda[lambda>0] <- exp(param[-c(1,2)])      
     } else {
-      param    <- c(log(G),K.coef[K.free])
-      param[length(param)] <- log(param[length(param)])
+      param    <- c(log(G),log(lambda[lambda>0]))
       if (nlSearch) {
         res    <- nlminb(param,minus2logLik)
         counts <- 1+sum(c(1,length(param))*res$evaluations)
@@ -638,15 +555,13 @@ fdaLm <- function(formula,data,design,
       } else {
         counts <- 1
       }
-      boxcox         <- "not done"
-      G              <- exp(param[1])*diag(q0)
-      K.coef[K.free] <- param[-1]
-      K.coef[length(K.coef)] <- exp(K.coef[length(K.coef)])
+      boxcox           <- "not done"
+      G                <- exp(param[1])*diag(q0)
+      lambda[lambda>0] <- exp(param[-1])
     }
   } else {
     if (is.numeric(boxcox)) {
-      param    <- c(boxcox[1],K.coef[K.free])
-      param[length(param)] <- log(param[length(param)])
+      param    <- c(boxcox[1],log(lambda[lambda>0]))
       if (nlSearch) {
         res    <- nlminb(param,minus2logLik)
         counts <- 1+sum(c(1,length(param))*res$evaluations)
@@ -654,13 +569,11 @@ fdaLm <- function(formula,data,design,
       } else {
         counts <- 1
       }
-      boxcox         <- param[1]
-      G              <- diag(q0)
-      K.coef[K.free] <- param[-1]
-      K.coef[length(K.coef)] <- exp(K.coef[length(K.coef)])
+      boxcox           <- param[1]
+      G                <- diag(q0)
+      lambda[lambda>0] <- exp(param[-1])
     } else {
-      param    <- K.coef[K.free]
-      param[length(param)] <- log(param[length(param)])
+      param    <- log(lambda[lambda>0])
       if (nlSearch) {
         res    <- nlminb(param,minus2logLik)
         counts <- 1+sum(c(1,length(param))*res$evaluations)
@@ -668,10 +581,9 @@ fdaLm <- function(formula,data,design,
       } else {
         counts <- 1
       }
-      boxcox         <- "not done"
-      G              <- diag(q0)
-      K.coef[K.free] <- param
-      K.coef[length(K.coef)] <- exp(K.coef[length(K.coef)])
+      boxcox           <- "not done"
+      G                <- diag(q0)
+      lambda[lambda>0] <- exp(param)
     }
   }
 
@@ -760,7 +672,7 @@ fdaLm <- function(formula,data,design,
   attr(condRes,"dim") <- c(NN,MM)
 
   # Add appropriate name attributes
-#  names(lambda)          <- lambda.name
+  names(lambda)          <- lambda.name
   if (p0 > 0) {
     if (anova.type=="global") {
       names(betaHat)     <- beta.names
@@ -794,7 +706,7 @@ fdaLm <- function(formula,data,design,
 #  if ((q0>0) && (p0>0)) warning("uVar is not corrected for estimation of fixed effect.\n  To be updated later.")
   
   return(list(logLik=res$logLik,ANOVA=anova.type,nlSearch=nlSearch,counts=counts,
-              boxcoxHat=boxcox,Ghat=G,Khat=K.coef,sigma2hat=res$sigma2hat,
+              boxcoxHat=boxcox,Ghat=G,lambdaHat=lambda,sigma2hat=res$sigma2hat,
               betaHat=betaHat,uBLUP=uBLUP,xBLUP=xBLUP,
               condRes=condRes,
 #              condResVar=condResVar,

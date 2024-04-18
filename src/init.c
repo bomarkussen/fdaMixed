@@ -5,14 +5,14 @@
 
 /* .Call calls */
 extern SEXP boxcoxTransform(SEXP, SEXP, SEXP, SEXP);
-extern SEXP fdaEngine(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP fdaTrace(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP fdaEngine(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP fdaTrace(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP marginalANOVA(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
   {"boxcoxTransform", (DL_FUNC) &boxcoxTransform,  4},
-  {"fdaEngine",       (DL_FUNC) &fdaEngine,       19},
-  {"fdaTrace",        (DL_FUNC) &fdaTrace,        10},
+  {"fdaEngine",       (DL_FUNC) &fdaEngine,       23},
+  {"fdaTrace",        (DL_FUNC) &fdaTrace,        14},
   {"marginalANOVA",   (DL_FUNC) &marginalANOVA,   10},
   {NULL, NULL, 0}
 };

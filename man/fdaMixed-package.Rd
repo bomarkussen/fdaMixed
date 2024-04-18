@@ -1,5 +1,4 @@
 \name{fdaMixed-package}
-\alias{fdaMixed}
 \alias{fdaMixed-package}
 \docType{package}
 \title{Functional Data Analysis in a Mixed Model Framework}
